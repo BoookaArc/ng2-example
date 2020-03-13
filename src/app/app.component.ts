@@ -1,0 +1,39 @@
+import { Component, ChangeDetectionStrategy } from '@angular/core';
+import { DataService, Human } from '../data.service';
+import { Observable } from 'rxjs';
+import { GridModel, Grid } from 'ng2-qgrid';
+import { map } from 'rxjs/operators';
+
+@Component({
+	selector: 'my-app',
+	templateUrl: 'app.component.html',
+	styleUrls: ['app.component.css'],
+	providers: [DataService],
+	changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class AppComponent {
+	static id = 'master-details-basic';
+
+	gridModel: GridModel;
+	rows: Observable<Human[]>;
+	detailsRows: Observable<Human[]>;
+	likes: string[] = [];
+
+	constructor(dataService: DataService, qgrid: Grid) {
+		this.gridModel = qgrid.model();
+		this.rows = dataService.getPeople();
+
+		this.gridModel.selectionChanged.watch(e => {
+			const items = e.state.items;
+			if (items.length) {
+				this.likes = items[0].likes;
+
+				this.detailsRows = dataService.getPeople().pipe(
+					map(humans =>
+						humans.filter(human =>
+							this.likes.every(like => human.likes.indexOf(like) >= 0)))
+				);
+			}
+		});
+	}
+}
